@@ -1,4 +1,4 @@
-# Demeke Bingo (`demeke-bigo`)
+index.html
 
 A web-based Bingo application created by **Demeke** (`demea2455`).
 
