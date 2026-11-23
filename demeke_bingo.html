@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demeke Bingo</title>
+<style>
+:root{--green:#159447;--dark:#10251a;--gold:#ffd166;--bg:#f3f7f4}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--dark)}
+header{background:linear-gradient(135deg,#08783b,#16a05a);color:white;text-align:center;padding:24px 14px}
+h1{margin:0;font-size:clamp(28px,7vw,42px);letter-spacing:2px}header p{margin:8px 0 0}
+main{max-width:900px;margin:20px auto;padding:0 14px;display:grid;gap:16px}
+.panel{background:white;border-radius:16px;padding:16px;box-shadow:0 5px 18px #163b2512}
+.controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+button{border:0;border-radius:12px;padding:12px 18px;font-size:16px;font-weight:bold;cursor:pointer}
+.primary{background:var(--green);color:white}.secondary{background:#e7f3eb;color:#126b38}.danger{background:#ffeded;color:#a32626}
+button:disabled{opacity:.45;cursor:not-allowed}
+#called{font-size:clamp(34px,10vw,58px);font-weight:900;text-align:center;color:var(--green);padding:10px}
+#status{text-align:center;color:#52665a;min-height:24px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.cell{aspect-ratio:1;border-radius:10px;background:#edf4ef;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:clamp(16px,4vw,25px);border:2px solid transparent;cursor:pointer;user-select:none}
+.cell.head{background:var(--green);color:white;cursor:default;font-size:clamp(17px,4vw,22px)}
+.cell.marked{background:var(--gold);border-color:#e3a900;color:#352700}
+.cell.free{background:#d7efdf;color:#126b38;font-size:13px}
+.history{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.ball{border-radius:30px;background:#e8f3eb;padding:7px 10px;font-weight:bold}
+.small{text-align:center;color:#627267;font-size:13px}
+@media(min-width:700px){main{grid-template-columns:1fr 1fr}.full{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<header><h1>🎱 DEMEKE BINGO</h1><p>Play your own 75-ball Bingo game</p></header>
+<main>
+<section class="panel">
+<h2 style="text-align:center">Game Caller</h2>
+<div id="called">Ready?</div>
+<div id="status">Press “Draw Number” to begin.</div>
+<div class="controls">
+<button class="primary" id="draw">Draw Number</button>
+<button class="secondary" id="reset">New Game</button>
+</div>
+<h3 style="text-align:center">Called numbers</h3>
+<div class="history" id="history"><span class="small">No numbers yet</span></div>
+</section>
+<section class="panel">
+<h2 style="text-align:center">Your Bingo Card</h2>
+<div class="grid" id="card"></div>
+<div class="controls" style="margin-top:14px">
+<button class="secondary" id="newCard">New Card</button>
+<button class="primary" id="check">Check Bingo</button>
+</div>
+<p class="small">Tap a square to mark it. The center FREE square is already marked.</p>
+</section>
+<section class="panel full">
+<h3>How to play</h3>
+<p>Draw numbers one by one. Mark matching numbers on your card. Complete 5 in a row, column, or diagonal, then press <b>Check Bingo</b>.</p>
+<p class="small">This is a local demo. It does not collect payments or connect to Telegram.</p>
+</section>
+</main>
+<script>
+const letters=['B','I','N','G','O'],ranges=[[1,15],[16,30],[31,45],[46,60],[61,75]];
+let pool=[],called=[],card=[],marked=new Set([12]);
+const $=id=>document.getElementById(id);
+function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function makeCard(){
+ card=[];for(let c=0;c<5;c++){let nums=shuffle(Array.from({length:15},(_,i)=>ranges[c][0]+i)).slice(0,5);for(let r=0;r<5;r++)card[r*5+c]=nums[r]}
+ card[12]='FREE';marked=new Set([12]);renderCard();
+}
+function renderCard(){
+ const el=$('card');el.innerHTML='';
+ letters.forEach(l=>{let d=document.createElement('div');d.className='cell head';d.textContent=l;el.appendChild(d)});
+ card.forEach((v,i)=>{let d=document.createElement('div');d.className='cell'+(marked.has(i)?' marked':'')+(i===12?' free':'');d.textContent=v;d.onclick=()=>{if(i!==12){marked.has(i)?marked.delete(i):marked.add(i);renderCard()}};el.appendChild(d)});
+}
+function start(){pool=shuffle(Array.from({length:75},(_,i)=>i+1));called=[];$('called').textContent='Ready?';$('status').textContent='Press “Draw Number” to begin.';renderHistory();$('draw').disabled=false;makeCard()}
+function draw(){
+ if(!pool.length){$('status').textContent='All numbers have been drawn!';$('draw').disabled=true;return}
+ let n=pool.pop(),col=Math.floor((n-1)/15);called.push(n);
+ $('called').textContent=letters[col]+'-'+n;$('status').textContent=`Number ${called.length} of 75`;
+ renderHistory();
+}
+function renderHistory(){$('history').innerHTML=called.length?called.slice().reverse().map(n=>`<span class="ball">${letters[Math.floor((n-1)/15)]}-${n}</span>`).join(''):'<span class="small">No numbers yet</span>'}
+function check(){
+ const lines=[];
+ for(let r=0;r<5;r++)lines.push([0,1,2,3,4].map(c=>r*5+c));
+ for(let c=0;c<5;c++)lines.push([0,1,2,3,4].map(r=>r*5+c));
+ lines.push([0,6,12,18,24],[4,8,12,16,20]);
+ const win=lines.some(line=>line.every(i=>marked.has(i)));
+ $('status').textContent=win?'🎉 BINGO! Congratulations!': 'Not yet — keep playing!';
+ if(win)alert('🎉 BINGO! Congratulations!');
+}
+$('draw').onclick=draw;$('reset').onclick=start;$('newCard').onclick=makeCard;$('check').onclick=check;start();
+</script>
+</body>
+</html>
